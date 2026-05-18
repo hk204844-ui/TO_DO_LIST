@@ -240,17 +240,17 @@ textarea.reflect-prompt-q{min-height:56px;resize:vertical;line-height:1.4}
 
 /* TABLET & iPAD */
 @media(min-width:768px){
-  .header{padding-top:max(24px,env(safe-area-inset-top));padding-right:max(24px,env(safe-area-inset-right));padding-bottom:0;padding-left:max(24px,env(safe-area-inset-left))}
-  .header-top,.tabs,.week-bar,.main{max-width:1100px;margin-left:auto;margin-right:auto}
+  .header{padding-top:max(24px,env(safe-area-inset-top));padding-right:0;padding-bottom:0;padding-left:0}
+  .header-top,.tabs{max-width:1100px;margin-left:auto;margin-right:auto;padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right))}
   .header h1{font-size:32px}
   .header-score .sn{font-size:28px}
   .header-score{padding:10px 22px}
   .tab-btn{padding:16px 0;font-size:16px}
-  .week-bar{top:156px;padding:14px 20px;flex-wrap:wrap;justify-content:center;overflow-x:visible;gap:10px}
-  .wbtn{min-width:5.5rem;padding:10px 14px}
+  .week-bar{top:156px;padding:14px max(20px,env(safe-area-inset-right)) 14px max(20px,env(safe-area-inset-left));flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;max-width:none;width:100%;gap:10px;-webkit-overflow-scrolling:touch}
+  .wbtn{min-width:6.25rem;padding:10px 14px}
   .wbtn-w{font-size:14px}
-  .wbtn-d{font-size:13px;max-width:9rem}
-  .main{padding:20px 28px 32px}
+  .wbtn-d{font-size:12px;max-width:7.5rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .main{max-width:1100px;margin-left:auto;margin-right:auto;padding:20px max(28px,env(safe-area-inset-right)) 32px max(28px,env(safe-area-inset-left))}
   .sec-label{font-size:11px;margin:22px 0 10px}
   .task-row{padding:18px 20px;margin-bottom:12px;border-radius:var(--radius)}
   .task-name{font-size:16px}
@@ -288,7 +288,7 @@ textarea.reflect-prompt-q{min-height:56px;resize:vertical;line-height:1.4}
 }
 @media(min-width:1024px){
   .header h1{font-size:34px}
-  .main{max-width:1100px}
+  .wbtn{min-width:6.75rem}
   .matrix{min-height:min(70vh,720px)}
   .quadrant{min-height:300px}
   .day-grid{gap:10px}
