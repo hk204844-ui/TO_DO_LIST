@@ -94,6 +94,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .task-info{flex:1}
 .task-name{font-size:15px;font-weight:500;color:var(--text);line-height:1.35}
 .task-goal{font-size:12px;color:var(--text-muted);margin-top:3px}
+.task-goal-editable{cursor:pointer;border:none;background:transparent;padding:0;font:inherit;color:var(--teal-mid);text-align:left;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;display:block;width:100%}
+.task-goal-editable:hover{color:var(--teal)}
+.task-goal-editable{cursor:pointer;border:none;background:transparent;padding:0;font:inherit;color:var(--teal-mid);text-align:left;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+.task-goal-editable:hover{color:var(--teal)}
 .task-tag{font-size:11px;padding:4px 10px;border-radius:50px;font-weight:500;margin-left:auto;flex-shrink:0}
 .task-actions{display:flex;gap:8px;align-items:center}
 .btn-edit{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--text-muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;min-width:40px;min-height:40px}
@@ -391,13 +395,31 @@ textarea.reflect-prompt-q{min-height:56px;resize:vertical;line-height:1.4}
     </div>
     <div class="form-row-2">
       <div class="form-row" style="margin:0">
-        <div class="form-label">Daily Goal (max)</div>
+        <div class="form-label">Target slider (max)</div>
         <input class="form-input" id="f-max" type="number" min="1" max="200" placeholder="10">
       </div>
       <div class="form-row" style="margin:0">
-        <div class="form-label">Goal Label</div>
-        <input class="form-input" id="f-goal" placeholder="70 min">
+        <div class="form-label">Durasi (menit)</div>
+        <input class="form-input" id="f-duration" type="number" min="0" max="600" placeholder="60">
       </div>
+    </div>
+    <div class="form-row-2" id="f-time-row">
+      <div class="form-row" style="margin:0">
+        <div class="form-label">Waktu mulai</div>
+        <input class="form-input" id="f-time-start" type="time">
+      </div>
+      <div class="form-row" style="margin:0">
+        <div class="form-label">Waktu selesai</div>
+        <input class="form-input" id="f-time-end" type="time">
+      </div>
+    </div>
+    <div class="form-row" id="f-goal-custom-row">
+      <div class="form-label">Label khusus (opsional)</div>
+      <input class="form-input" id="f-goal-custom" placeholder="Sepanjang hari">
+    </div>
+    <div class="form-row" id="f-goal-matrix-row" style="display:none">
+      <div class="form-label">Goal Label</div>
+      <input class="form-input" id="f-goal" placeholder="70 min">
     </div>
     <div class="form-row" id="f-break-row">
       <div class="form-label">Break Days (rest days with no slider)</div>
@@ -1116,7 +1138,7 @@ function taskRowHTML(task,idx){
       <div class="task-num">${idx+1}.</div>
       <div class="task-info">
         <div class="task-name">${task.name}</div>
-        <div class="task-goal">${task.goal}</div>
+        <button type="button" class="task-goal task-goal-editable" onclick="openEdit('${task.id}')" title="Ketuk untuk ubah waktu">${escGoal(task.goal)}</button>
       </div>
       ${tagHTML(task.cat)}
       <div class="task-actions">
@@ -1518,13 +1540,86 @@ function switchTab(tab){
   if(tab==='guide') renderGuideTab();
 }
 
+
+function escGoal(g){
+  return String(g||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function parseGoalToFields(goal){
+  const g=(goal||'').trim();
+  if(!g||g==='\u2014'||g==='—') return {duration:'',timeStart:'',timeEnd:'',custom:''};
+  if(/^sepanjang\s+hari$/i.test(g)) return {duration:'',timeStart:'',timeEnd:'',custom:g};
+  let m=g.match(/^(\d+)\s*min\s*[\u00b7\u2022]\s*(\d{1,2}):(\d{2})\s*[\u2013\-]\s*(\d{1,2}):(\d{2})$/i);
+  if(m) return {duration:m[1],timeStart:padTimeInput(m[2],m[3]),timeEnd:padTimeInput(m[4],m[5]),custom:''};
+  m=g.match(/^(\d+)\s*min\s*[\u00b7\u2022]\s*(\d{1,2}):(\d{2})$/i);
+  if(m) return {duration:m[1],timeStart:padTimeInput(m[2],m[3]),timeEnd:'',custom:''};
+  m=g.match(/^(\d+)\s*min$/i);
+  if(m) return {duration:m[1],timeStart:'',timeEnd:'',custom:''};
+  m=g.match(/^(\d{1,2}):(\d{2})\s*[\u2013\-]\s*(\d{1,2}):(\d{2})$/);
+  if(m) return {duration:'',timeStart:padTimeInput(m[1],m[2]),timeEnd:padTimeInput(m[3],m[4]),custom:''};
+  m=g.match(/^(\d{1,2}):(\d{2})$/);
+  if(m) return {duration:'',timeStart:padTimeInput(m[1],m[2]),timeEnd:'',custom:''};
+  return {duration:'',timeStart:'',timeEnd:'',custom:g};
+}
+function padTimeInput(h,mi){ return String(parseInt(h,10)).padStart(2,'0')+':'+String(mi).padStart(2,'0'); }
+function formatTimeDisplay(t){
+  if(!t) return '';
+  const p=t.split(':');
+  return parseInt(p[0],10)+':'+p[1];
+}
+function buildGoalFromFields(){
+  const customEl=document.getElementById('f-goal-custom');
+  const custom=customEl?customEl.value.trim():'';
+  if(custom) return custom;
+  const durEl=document.getElementById('f-duration');
+  const startEl=document.getElementById('f-time-start');
+  const endEl=document.getElementById('f-time-end');
+  const duration=durEl?durEl.value.trim():'';
+  const start=startEl?startEl.value:'';
+  const end=endEl?endEl.value:'';
+  const s=formatTimeDisplay(start);
+  const e=formatTimeDisplay(end);
+  const dot='\u00b7';
+  const dash='\u2013';
+  if(duration&&s&&e) return duration+' min '+dot+' '+s+dash+e;
+  if(duration&&s) return duration+' min '+dot+' '+s;
+  if(duration) return duration+' min';
+  if(s&&e) return s+dash+e;
+  if(s) return s;
+  return '\u2014';
+}
+function fillTimeFieldsFromGoal(goal){
+  const f=parseGoalToFields(goal);
+  const d=document.getElementById('f-duration');
+  const ts=document.getElementById('f-time-start');
+  const te=document.getElementById('f-time-end');
+  const c=document.getElementById('f-goal-custom');
+  if(d) d.value=f.duration;
+  if(ts) ts.value=f.timeStart;
+  if(te) te.value=f.timeEnd;
+  if(c) c.value=f.custom;
+}
+function clearTimeFields(){
+  ['f-duration','f-time-start','f-time-end','f-goal-custom'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.value='';
+  });
+}
+
 // ── MODAL ─────────────────────────────────────────────────────────────────────
 function setModalForList(list){
   const isMatrix=list==='matrix';
   const secRow=document.getElementById('f-section-row');
   const brRow=document.getElementById('f-break-row');
+  const timeRow=document.getElementById('f-time-row');
+  const customRow=document.getElementById('f-goal-custom-row');
+  const matrixGoal=document.getElementById('f-goal-matrix-row');
+  const durRow=document.getElementById('f-duration');
   if(secRow) secRow.style.display=isMatrix?'none':'';
   if(brRow) brRow.style.display=isMatrix?'none':'';
+  if(timeRow) timeRow.style.display=isMatrix?'none':'';
+  if(customRow) customRow.style.display=isMatrix?'none':'';
+  if(durRow) durRow.style.display=isMatrix?'none':'';
+  if(matrixGoal) matrixGoal.style.display=isMatrix?'':'none';
 }
 function openAdd(presetCat,list){
   state.editList=list==='matrix'?'matrix':'tasks';
@@ -1534,6 +1629,7 @@ function openAdd(presetCat,list){
   document.getElementById('f-cat').value= presetCat && ['mit','schedule','delegate','eliminate'].includes(presetCat) ? presetCat : 'mit';
   document.getElementById('f-section').value='Pagi Awal (04:00–07:00)';
   document.getElementById('f-max').value='10';
+  clearTimeFields();
   document.getElementById('f-goal').value='';
   document.querySelectorAll('.break-day-btn').forEach(b=>b.classList.remove('selected'));
   setModalForList(state.editList);
@@ -1550,6 +1646,7 @@ function openEdit(id,list){
   document.getElementById('f-section').value=t.section||'Pagi Awal (04:00–07:00)';
   document.getElementById('f-max').value=t.max;
   document.getElementById('f-goal').value=t.goal;
+  fillTimeFieldsFromGoal(t.goal);
   document.querySelectorAll('.break-day-btn').forEach(b=>{
     b.classList.toggle('selected',(t.breaks||[]).includes(parseInt(b.dataset.d)));
   });
@@ -1570,7 +1667,7 @@ function saveTask(){
     cat: document.getElementById('f-cat').value,
     section: document.getElementById('f-section').value,
     max: parseInt(document.getElementById('f-max').value)||10,
-    goal: document.getElementById('f-goal').value.trim()||'—',
+    goal: list==='matrix'?(document.getElementById('f-goal').value.trim()||'—'):buildGoalFromFields(),
     breaks: list==='matrix'?[]:[...breakSelections],
   };
   if(list==='matrix'){
