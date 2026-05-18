@@ -55,7 +55,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 /* SECTION */
 .sec-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin:18px 0 8px;display:flex;align-items:center;gap:8px}
-.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.sec-label-line{flex:1;height:1px;background:var(--border)}
+.sec-label-editable{cursor:pointer;border:none;background:transparent;padding:0;font:inherit;font-size:inherit;font-weight:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;text-align:left;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;max-width:min(100%,28rem)}
+.sec-label-editable:hover{color:var(--teal)}
+.sec-label-input{flex:0 1 auto;min-width:8rem;max-width:min(100%,28rem);font:inherit;font-size:inherit;font-weight:inherit;letter-spacing:inherit;text-transform:inherit;color:var(--text);background:white;border:1px solid var(--teal-border);border-radius:6px;padding:4px 8px;outline:none}
+.sec-label-input:focus{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-light)}
+.workout-guide{margin-bottom:16px}
+.workout-guide .guide-card{margin-bottom:10px}
+.workout-guide .guide-card:last-child{margin-bottom:0}
 
 /* EISENHOWER MATRIX */
 .matrix{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;min-height:calc(100vh - 200px)}
@@ -382,16 +389,7 @@ textarea.reflect-prompt-q{min-height:56px;resize:vertical;line-height:1.4}
     </div>
     <div class="form-row" id="f-section-row">
       <div class="form-label">Section</div>
-      <select class="form-select" id="f-section">
-        <option value="Pagi Awal (04:00–07:00)">Pagi Awal (04:00–07:00)</option>
-        <option value="Pagi & Tubuh (07:00–09:00)">Pagi & Tubuh (07:00–09:00)</option>
-        <option value="Belajar Pagi (09:00–12:20)">Belajar Pagi (09:00–12:20)</option>
-        <option value="Siang (12:00–14:15)">Siang (12:00–14:15)</option>
-        <option value="Belajar Sore (14:15–16:00)">Belajar Sore (14:15–16:00)</option>
-        <option value="Sore & Maghrib (16:00–19:00)">Sore & Maghrib (16:00–19:00)</option>
-        <option value="Malam (19:00–22:00)">Malam (19:00–22:00)</option>
-        <option value="Refleksi & Akuntabilitas">Refleksi & Akuntabilitas</option>
-      </select>
+      <select class="form-select" id="f-section"></select>
     </div>
     <div class="form-row-2">
       <div class="form-row" style="margin:0">
@@ -474,6 +472,8 @@ textarea.reflect-prompt-q{min-height:56px;resize:vertical;line-height:1.4}
 // ── DATA ─────────────────────────────────────────────────────────────────────
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const STORAGE_KEY = 'dara_todo_2026';
+const SCHEDULE_VERSION = 2;
+const WORKOUT_GUIDE_SEC = 'Weekly Workout & Fitness Guide';
 const GIFT_SEEN_KEY = 'dara_gift_opened_2026';
 const GIFT_FROM_NAME = 'Habib';
 const GIFT_QUOTES = [
@@ -502,16 +502,32 @@ const QUAD = {
 };
 const SEC_ORDER = [
   'Pagi Awal (04:00–07:00)',
-  'Pagi & Tubuh (07:00–09:00)',
-  'Belajar Pagi (09:00–12:20)',
-  'Siang (12:00–14:15)',
-  'Belajar Sore (14:15–16:00)',
-  'Sore & Maghrib (16:00–19:00)',
+  'Pagi Belajar (07:00–12:23)',
+  'Siang (12:00–14:23)',
+  'Belajar Sore (14:23–16:00)',
+  'Sore & Tubuh (16:00–19:00)',
   'Malam (19:00–22:00)',
-  'Refleksi & Akuntabilitas'
+  'Refleksi & Akuntabilitas',
+  WORKOUT_GUIDE_SEC
 ];
+const TASK_SECTION_KEYS = SEC_ORDER.filter(s=>s!==WORKOUT_GUIDE_SEC);
+const SECTION_KEY_MAP = {
+  'Pagi & Tubuh (07:00–09:00)':'Pagi Belajar (07:00–12:23)',
+  'Belajar Pagi (09:00–12:20)':'Pagi Belajar (07:00–12:23)',
+  'Siang (12:00–14:15)':'Siang (12:00–14:23)',
+  'Belajar Sore (14:15–16:00)':'Belajar Sore (14:23–16:00)',
+  'Sore & Maghrib (16:00–19:00)':'Sore & Tubuh (16:00–19:00)'
+};
+const REFLECT_ID_MAP = {t26:'t28',t27:'t29',t28:'t30',t29:'t31'};
 
-const REFLECT_KEY_BY_ID = {t26:'musharatah',t27:'muraqabah',t28:'muhasaba',t29:'muqaqabah'};
+function buildDefaultSectionLabels(){
+  const labels={};
+  SEC_ORDER.forEach(s=>{ labels[s]=s; });
+  return labels;
+}
+const DEFAULT_SECTION_LABELS = buildDefaultSectionLabels();
+
+const REFLECT_KEY_BY_ID = {t28:'musharatah',t29:'muraqabah',t30:'muhasaba',t31:'muqaqabah'};
 const REFLECT_PROMPT_LABELS = {musharatah:'Musharatah',muraqabah:'Muraqabah',muhasaba:'Muhasaba',muqaqabah:'Mu\'aqabah'};
 const REFLECTION_PROMPTS = {
   musharatah: {
@@ -554,33 +570,35 @@ const DEFAULT_TASKS = [
   {id:'t3', name:'Subuh, zikir, doa, Surah Yasin', goal:'60 min · 05:00–06:00', max:6, section:'Pagi Awal (04:00–07:00)', cat:'mit', breaks:[]},
   {id:'t4', name:'Journaling Pagi', goal:'20 min · 06:00–06:20', max:2, section:'Pagi Awal (04:00–07:00)', cat:'schedule', breaks:[]},
   {id:'t5', name:'Quran Journaling', goal:'25 min · 06:20–06:45', max:3, section:'Pagi Awal (04:00–07:00)', cat:'schedule', breaks:[]},
-  {id:'t6', name:'Sarapan Sehat', goal:'15 min · 06:45–07:00', max:2, section:'Pagi & Tubuh (07:00–09:00)', cat:'schedule', breaks:[]},
-  {id:'t7', name:'Workout', goal:'60 min · 07:00–08:00', max:6, section:'Pagi & Tubuh (07:00–09:00)', cat:'schedule', breaks:[]},
-  {id:'t8', name:'Bodycare Routine', goal:'60 min · 08:00–09:00', max:6, section:'Pagi & Tubuh (07:00–09:00)', cat:'schedule', breaks:[]},
-  {id:'t9', name:'Whey Protein', goal:'09:00', max:1, section:'Pagi & Tubuh (07:00–09:00)', cat:'schedule', breaks:[]},
-  {id:'t10', name:'Belajar Fikih Nikah / Parenting', goal:'60 min · 09:00–10:00', max:6, section:'Belajar Pagi (09:00–12:20)', cat:'schedule', breaks:[]},
-  {id:'t11', name:'Bahasa Inggris', goal:'60 min · 10:15–11:15', max:6, section:'Belajar Pagi (09:00–12:20)', cat:'schedule', breaks:[]},
-  {id:'t12', name:'Bahasa Arab (pagi)', goal:'50 min · 11:30–12:20', max:5, section:'Belajar Pagi (09:00–12:20)', cat:'schedule', breaks:[]},
-  {id:'t13', name:'Zuhur, zikir, doa', goal:'12:23', max:1, section:'Siang (12:00–14:15)', cat:'mit', breaks:[]},
-  {id:'t14', name:'Makan Siang', goal:'30 min · 12:45–13:15', max:3, section:'Siang (12:00–14:15)', cat:'schedule', breaks:[]},
-  {id:'t15', name:'Tidur Siang', goal:'60 min · 13:15–14:15', max:6, section:'Siang (12:00–14:15)', cat:'schedule', breaks:[]},
-  {id:'t16', name:'Belajar SKD CPNS', goal:'60 min · 14:15–15:15', max:6, section:'Belajar Sore (14:15–16:00)', cat:'schedule', breaks:[]},
-  {id:'t17', name:'Bahasa Arab (sore)', goal:'25 min · 15:15–15:40', max:3, section:'Belajar Sore (14:15–16:00)', cat:'schedule', breaks:[]},
-  {id:'t18', name:'Ashar, zikir, doa', goal:'15:45', max:1, section:'Sore & Maghrib (16:00–19:00)', cat:'mit', breaks:[]},
-  {id:'t19', name:'Mandi Sore + Skin & Body Care', goal:'60 min · 16:00–17:00', max:6, section:'Sore & Maghrib (16:00–19:00)', cat:'schedule', breaks:[]},
-  {id:'t20', name:'Magrib, zikir, doa, Al-Waqiah', goal:'18:31', max:1, section:'Sore & Maghrib (16:00–19:00)', cat:'mit', breaks:[]},
-  {id:'t21', name:'Isya, zikir, doa, Surah Al-Mulk', goal:'19:39', max:1, section:'Malam (19:00–22:00)', cat:'mit', breaks:[]},
-  {id:'t22', name:'Quran Journaling (malam)', goal:'30 min · 20:00–20:30', max:3, section:'Malam (19:00–22:00)', cat:'schedule', breaks:[]},
-  {id:'t23', name:'Journaling MLM', goal:'30 min · 20:30–21:00', max:3, section:'Malam (19:00–22:00)', cat:'schedule', breaks:[]},
-  {id:'t24', name:'Makan Malam', goal:'30 min · 21:00–21:30', max:3, section:'Malam (19:00–22:00)', cat:'schedule', breaks:[]},
-  {id:'t25', name:'Tidur Malam', goal:'22:00', max:1, section:'Malam (19:00–22:00)', cat:'schedule', breaks:[]},
-  {id:'t26', name:'Musharatah (Setting Conditions)', goal:'35 min', max:5, section:'Refleksi & Akuntabilitas', cat:'mit', breaks:[], reflectKey:'musharatah'},
-  {id:'t27', name:'Muraqabah (Self-Vigilance)', goal:'Sepanjang hari', max:7, section:'Refleksi & Akuntabilitas', cat:'mit', breaks:[], reflectKey:'muraqabah'},
-  {id:'t28', name:'Muhasaba (Self-Accounting)', goal:'35 min', max:5, section:'Refleksi & Akuntabilitas', cat:'mit', breaks:[], reflectKey:'muhasaba'},
-  {id:'t29', name:'Mu\'aqabah (Self-Correction)', goal:'35 min', max:5, section:'Refleksi & Akuntabilitas', cat:'mit', breaks:[], reflectKey:'muqaqabah'}
+  {id:'t6', name:'Sarapan Sehat', goal:'15 min · 06:45–07:00', max:2, section:'Pagi Awal (04:00–07:00)', cat:'schedule', breaks:[]},
+  {id:'t7', name:'Bahasa Inggris', goal:'60 min · 07:00–08:00', max:6, section:'Pagi Belajar (07:00–12:23)', cat:'schedule', breaks:[]},
+  {id:'t8', name:'Istirahat', goal:'15 min · 08:00–08:15', max:2, section:'Pagi Belajar (07:00–12:23)', cat:'eliminate', breaks:[]},
+  {id:'t9', name:'Belajar — Fikih Nikah / Parenting', goal:'60 min · 08:15–09:15', max:6, section:'Pagi Belajar (07:00–12:23)', cat:'schedule', breaks:[]},
+  {id:'t10', name:'Istirahat', goal:'15 min · 09:15–09:30', max:2, section:'Pagi Belajar (07:00–12:23)', cat:'eliminate', breaks:[]},
+  {id:'t11', name:'Bahasa Arab', goal:'60 min · 09:30–10:30', max:6, section:'Pagi Belajar (07:00–12:23)', cat:'schedule', breaks:[]},
+  {id:'t12', name:'Istirahat', goal:'15 min · 10:30–10:45', max:2, section:'Pagi Belajar (07:00–12:23)', cat:'eliminate', breaks:[]},
+  {id:'t13', name:'Sholat Dhuha + Zikir + Doa', goal:'30 min · 10:45–11:15', max:3, section:'Pagi Belajar (07:00–12:23)', cat:'mit', breaks:[]},
+  {id:'t14', name:'Baca Quran', goal:'68 min · 11:15–12:23', max:7, section:'Pagi Belajar (07:00–12:23)', cat:'schedule', breaks:[]},
+  {id:'t15', name:'Zuhur, zikir, doa', goal:'12:23', max:1, section:'Siang (12:00–14:23)', cat:'mit', breaks:[]},
+  {id:'t16', name:'Makan Siang', goal:'30 min · 12:53–13:23', max:3, section:'Siang (12:00–14:23)', cat:'schedule', breaks:[]},
+  {id:'t17', name:'Tidur Siang', goal:'60 min · 13:23–14:23', max:6, section:'Siang (12:00–14:23)', cat:'schedule', breaks:[]},
+  {id:'t18', name:'Belajar SKD CPNS', goal:'60 min · 14:23–15:23', max:6, section:'Belajar Sore (14:23–16:00)', cat:'schedule', breaks:[]},
+  {id:'t19', name:'Ashar, zikir, doa', goal:'10 min · 15:45–15:55', max:2, section:'Belajar Sore (14:23–16:00)', cat:'mit', breaks:[]},
+  {id:'t20', name:'Workout', goal:'60 min · 16:00–17:00', max:6, section:'Sore & Tubuh (16:00–19:00)', cat:'schedule', breaks:[]},
+  {id:'t21', name:'Mandi Sore + Skin & Body Care Routine', goal:'60 min · 17:00–18:00', max:6, section:'Sore & Tubuh (16:00–19:00)', cat:'schedule', breaks:[]},
+  {id:'t22', name:'Magrib, zikir, doa, Al-Waqiah', goal:'18:31', max:1, section:'Sore & Tubuh (16:00–19:00)', cat:'mit', breaks:[]},
+  {id:'t23', name:'Isya, zikir, doa, Surah Al-Mulk', goal:'19:39', max:1, section:'Malam (19:00–22:00)', cat:'mit', breaks:[]},
+  {id:'t24', name:'Quran Journaling', goal:'30 min · 20:00–20:30', max:3, section:'Malam (19:00–22:00)', cat:'schedule', breaks:[]},
+  {id:'t25', name:'Journaling MLM', goal:'30 min · 20:30–21:00', max:3, section:'Malam (19:00–22:00)', cat:'schedule', breaks:[]},
+  {id:'t26', name:'Makan Malam', goal:'30 min · 21:00–21:30', max:3, section:'Malam (19:00–22:00)', cat:'schedule', breaks:[]},
+  {id:'t27', name:'Tidur Malam', goal:'22:00', max:1, section:'Malam (19:00–22:00)', cat:'schedule', breaks:[]},
+  {id:'t28', name:'Musharatah (Setting Conditions)', goal:'35 min', max:5, section:'Refleksi & Akuntabilitas', cat:'mit', breaks:[], reflectKey:'musharatah'},
+  {id:'t29', name:'Muraqabah (Self-Vigilance)', goal:'Sepanjang hari', max:7, section:'Refleksi & Akuntabilitas', cat:'mit', breaks:[], reflectKey:'muraqabah'},
+  {id:'t30', name:'Muhasaba (Self-Accounting)', goal:'35 min', max:5, section:'Refleksi & Akuntabilitas', cat:'mit', breaks:[], reflectKey:'muhasaba'},
+  {id:'t31', name:'Mu\'aqabah (Self-Correction)', goal:'35 min', max:5, section:'Refleksi & Akuntabilitas', cat:'mit', breaks:[], reflectKey:'muqaqabah'}
 ];
 
-let state = {tasks:[], matrixTasks:[], progress:{}, reflections:{}, reflectPrompts:{}, currentWeek:'', editingId:null, editList:'tasks', editingReflectKey:null, editingReflectTaskId:null};
+let state = {tasks:[], matrixTasks:[], progress:{}, reflections:{}, reflectPrompts:{}, sectionLabels:{}, scheduleVersion:0, currentWeek:'', editingId:null, editList:'tasks', editingReflectKey:null, editingReflectTaskId:null};
 let saveTimer = null;
 let currentTab = 'tasks';
 let undoStack = [];
@@ -617,9 +635,104 @@ function detectWeek() {
   return best;
 }
 
+// ── SECTION LABELS ────────────────────────────────────────────────────────────
+function initSectionLabels(saved){
+  state.sectionLabels={...DEFAULT_SECTION_LABELS};
+  if(saved&&typeof saved==='object'){
+    SEC_ORDER.forEach(k=>{
+      if(typeof saved[k]==='string'&&saved[k].trim()) state.sectionLabels[k]=saved[k].trim();
+    });
+  }
+}
+function getSectionLabel(key){ return state.sectionLabels[key]||key; }
+function setSectionLabel(key,label){
+  const trimmed=(label||'').trim();
+  if(!SEC_ORDER.includes(key)) return;
+  const next=trimmed||DEFAULT_SECTION_LABELS[key]||key;
+  if(getSectionLabel(key)===next) return;
+  pushUndo();
+  state.sectionLabels[key]=next;
+  autosave();
+  populateSectionSelect();
+  renderTasksTab();
+}
+function escSectionLabel(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function sectionLabelHTML(secKey){
+  const label=escSectionLabel(getSectionLabel(secKey));
+  const keyEsc=escSectionLabel(secKey);
+  return `<div class="sec-label"><button type="button" class="sec-label-editable" data-sec-key="${keyEsc}" onclick="startSectionLabelEdit(this)" title="Ketuk untuk ubah judul bagian">${label}</button><span class="sec-label-line" aria-hidden="true"></span></div>`;
+}
+function startSectionLabelEdit(btn){
+  if(btn.closest('.sec-label')?.querySelector('.sec-label-input')) return;
+  const key=btn.dataset.secKey;
+  const input=document.createElement('input');
+  input.type='text';
+  input.className='sec-label-input';
+  input.value=getSectionLabel(key);
+  input.setAttribute('aria-label','Edit section title');
+  const finish=(save)=>{
+    if(save) setSectionLabel(key,input.value);
+    else renderTasksTab();
+  };
+  input.onkeydown=e=>{
+    if(e.key==='Enter'){ e.preventDefault(); finish(true); }
+    if(e.key==='Escape'){ e.preventDefault(); finish(false); }
+  };
+  input.onblur=()=>finish(true);
+  btn.replaceWith(input);
+  input.focus();
+  input.select();
+}
+function populateSectionSelect(){
+  const sel=document.getElementById('f-section');
+  if(!sel) return;
+  const prev=sel.value;
+  sel.innerHTML=TASK_SECTION_KEYS.map(k=>{
+    const lab=escSectionLabel(getSectionLabel(k));
+    return `<option value="${escSectionLabel(k)}">${lab}</option>`;
+  }).join('');
+  if(prev&&TASK_SECTION_KEYS.includes(prev)) sel.value=prev;
+  else if(TASK_SECTION_KEYS.length) sel.value=TASK_SECTION_KEYS[0];
+}
+
+function remapNestedByTaskId(store,map){
+  if(!store||typeof store!=='object') return;
+  Object.keys(store).forEach(weekId=>{
+    const week=store[weekId];
+    if(!week||typeof week!=='object') return;
+    Object.entries(map).forEach(([oldId,newId])=>{
+      if(week[oldId]!==undefined&&!week[newId]){
+        week[newId]=week[oldId];
+        delete week[oldId];
+      }
+    });
+  });
+}
+function remapTaskSections(){
+  state.tasks.forEach(t=>{
+    if(SECTION_KEY_MAP[t.section]) t.section=SECTION_KEY_MAP[t.section];
+  });
+}
+function migrateScheduleV2(){
+  remapNestedByTaskId(state.progress,REFLECT_ID_MAP);
+  remapNestedByTaskId(state.reflections,REFLECT_ID_MAP);
+  state.tasks=JSON.parse(JSON.stringify(DEFAULT_TASKS));
+  state.scheduleVersion=SCHEDULE_VERSION;
+}
+function applyScheduleMigration(savedVersion){
+  if((savedVersion||0)>=SCHEDULE_VERSION) return;
+  migrateScheduleV2();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({tasks:state.tasks,matrixTasks:state.matrixTasks,progress:state.progress,reflections:state.reflections,reflectPrompts:state.reflectPrompts,sectionLabels:state.sectionLabels,scheduleVersion:state.scheduleVersion})); }
+  catch{}
+}
+
 // ── STORAGE ───────────────────────────────────────────────────────────────────
 function taskList(which){ return which==='matrix' ? state.matrixTasks : state.tasks; }
 function load() {
+  let savedSectionLabels=null;
+  let savedScheduleVersion=0;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw){
@@ -628,6 +741,9 @@ function load() {
       state.progress=d.progress||{};
       state.reflections=d.reflections||{};
       state.reflectPrompts=d.reflectPrompts||{};
+      savedSectionLabels=d.sectionLabels;
+      savedScheduleVersion=d.scheduleVersion||0;
+      state.scheduleVersion=savedScheduleVersion;
       if(d.matrixTasks) state.matrixTasks=d.matrixTasks;
       else state.matrixTasks=JSON.parse(JSON.stringify(state.tasks.length?state.tasks:DEFAULT_TASKS));
     } else {
@@ -635,20 +751,29 @@ function load() {
       state.matrixTasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
       state.reflections = {};
       state.reflectPrompts = {};
+      state.scheduleVersion = SCHEDULE_VERSION;
     }
   } catch {
     state.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
     state.matrixTasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
     state.reflections = {};
     state.reflectPrompts = {};
+    state.scheduleVersion = SCHEDULE_VERSION;
   }
   if(!state.reflections) state.reflections = {};
   if(!state.reflectPrompts) state.reflectPrompts = {};
-  migrateReflectKeys();
+  initSectionLabels(savedSectionLabels);
+  if((state.scheduleVersion||0)<SCHEDULE_VERSION){
+    applyScheduleMigration(state.scheduleVersion||0);
+  } else {
+    remapTaskSections();
+    migrateReflectKeys();
+  }
   state.currentWeek = detectWeek();
+  populateSectionSelect();
 }
 function save() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({tasks:state.tasks,matrixTasks:state.matrixTasks,progress:state.progress,reflections:state.reflections,reflectPrompts:state.reflectPrompts})); }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({tasks:state.tasks,matrixTasks:state.matrixTasks,progress:state.progress,reflections:state.reflections,reflectPrompts:state.reflectPrompts,sectionLabels:state.sectionLabels,scheduleVersion:state.scheduleVersion||SCHEDULE_VERSION})); }
   catch{}
   showToast();
 }
@@ -659,7 +784,8 @@ function snapshotForUndo(){
     matrixTasks:JSON.parse(JSON.stringify(state.matrixTasks)),
     progress:JSON.parse(JSON.stringify(state.progress)),
     reflections:JSON.parse(JSON.stringify(state.reflections)),
-    reflectPrompts:JSON.parse(JSON.stringify(state.reflectPrompts))
+    reflectPrompts:JSON.parse(JSON.stringify(state.reflectPrompts)),
+    sectionLabels:JSON.parse(JSON.stringify(state.sectionLabels))
   };
 }
 function pushUndo(){
@@ -677,6 +803,8 @@ function undoLastAction(){
   state.progress=snap.progress;
   state.reflections=snap.reflections;
   state.reflectPrompts=snap.reflectPrompts;
+  if(snap.sectionLabels) state.sectionLabels=snap.sectionLabels;
+  populateSectionSelect();
   save();
   renderAll();
   _skipUndoPush=false;
@@ -1328,17 +1456,45 @@ function initTaskDragDrop(){
 }
 
 
+function renderWorkoutGuideHTML(){
+  const li=items=>items.map(x=>`<li>${x}</li>`).join('');
+  return `<div class="workout-guide guide-wrap">
+    <div class="guide-card"><h3>Senin — Chest &amp; Back Day</h3><ul>${li(['Incline Dumbbell Press — 3×12','Chest Press Machine — 3×12','Lat Pulldown — 3×12','Seated Cable Row — 3×12','Assisted Push-Up — 3×10','Treadmill incline walk — 10 menit'])}</ul></div>
+    <div class="guide-card"><h3>Selasa — Leg Day</h3><ul>${li(['Squat — 4×12','Romanian Deadlift — 3×12','Leg Press — 3×15','Walking Lunges — 3×12','Leg Curl — 3×15','Stairmaster — 10 menit'])}</ul></div>
+    <div class="guide-card"><h3>Rabu — Rest Day</h3><ul>${li(['Luluran','Hair treatment','Setrika baju','Stretching ringan','Jalan santai'])}</ul></div>
+    <div class="guide-card"><h3>Kamis — Chest &amp; Back Day</h3><ul>${li(['Dumbbell Chest Fly — 3×12','Incline Press — 3×12','Lat Pulldown — 3×12','Cable Row — 3×12','Face Pull — 3×15','Incline Walk — 10 menit'])}</ul></div>
+    <div class="guide-card"><h3>Jumat — Leg Day</h3><ul>${li(['Bulgarian Split Squat — 3×12','Hip Thrust — 4×12','Leg Press — 3×15','Leg Extension — 3×15','Glute Bridge — 3×15','Stairmaster — 10 menit'])}</ul></div>
+    <div class="guide-card"><h3>Sabtu — Rest Day</h3><ul>${li(['Luluran','Setrika baju','Self-care day','Stretching ringan','Rapikan kamar &amp; wardrobe'])}</ul></div>
+    <div class="guide-card"><h3>Minggu — Glutes Pump Day (Light)</h3><ul>${li(['Hip Thrust ringan — 3×15','Frog Pump — 3×20','Cable Kickback — 3×15','Hip Abduction — 3×20','Stairmaster / incline walk — 10–15 menit'])}</ul><p class="guide-tip">Hari ini jangan terlalu berat ya.</p></div>
+    <div class="guide-card"><h3>Feminine Fitness Tips &amp; Body Goals</h3>
+      <p><strong>Target Protein</strong> — Sekitar 80–100g per hari</p>
+      <p><strong>Minum Air</strong> — 2–3 liter per hari</p>
+      <p><strong>Tidur</strong> — 7–9 jam</p>
+      <p><strong>Progressive Overload</strong> — Naikkan beban perlahan setiap 1–2 minggu</p>
+      <p><strong>Hindari terlalu banyak:</strong></p>
+      <ul>${li(['Heavy oblique workout','Excessive HIIT','Latihan bahu terlalu berat setiap hari'])}</ul>
+      <p><strong>Fokus pada:</strong></p>
+      <ul>${li(['Pinggang tetap slim','Glutes lebih round','Postur tubuh feminine','Cardio ringan &amp; konsisten','Stretching dan recovery'])}</ul>
+      <p class="guide-tip" style="font-style:italic;text-align:center;margin-top:12px">strong body, soft soul</p>
+    </div>
+  </div>`;
+}
+
 // ── TASKS TAB ─────────────────────────────────────────────────────────────────
 function renderTasksTab(){
   const container=document.getElementById('tab-tasks');
   const sections={};
-  SEC_ORDER.forEach(s=>sections[s]=[]);
+  TASK_SECTION_KEYS.forEach(s=>sections[s]=[]);
   state.tasks.forEach((t)=>{ if(sections[t.section]) sections[t.section].push(t); });
 
   let html='';
   SEC_ORDER.forEach(sec=>{
+    html+=sectionLabelHTML(sec);
+    if(sec===WORKOUT_GUIDE_SEC){
+      html+=renderWorkoutGuideHTML();
+      return;
+    }
     const items=sections[sec];
-    html+=`<div class="sec-label">${sec}</div>`;
     html+=`<div class="task-list" data-section="${sec}">`;
     if(!items.length) html+=`<div class="task-list-empty">Drag a task here</div>`;
     items.forEach((t,localIdx)=>{ html+=taskRowHTML(t,localIdx); });
@@ -1710,8 +1866,10 @@ function restoreMissingDefaultTasks(){
   showToast();
 }
 function resetToAllDefaults(){
-  if(!confirm('Replace your entire task list with the 13 original tasks?\n\nTasks you added yourself will be removed. Slider progress stays saved.')) return;
+  if(!confirm('Replace your entire task list with the default schedule ('+DEFAULT_TASKS.length+' tasks)?\n\nTasks you added yourself will be removed. Slider progress stays saved.')) return;
+  pushUndo();
   state.tasks=JSON.parse(JSON.stringify(DEFAULT_TASKS));
+  state.scheduleVersion=SCHEDULE_VERSION;
   autosave(); renderAll();
 }
 function deleteTask(id){
