@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Tracker Rutinitas Dara 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
 <style>
@@ -19,7 +19,7 @@
   --bg:#FDF8FA;--card:#FFFFFF;--text:#1A1A18;--text-mid:#444441;--text-muted:#888780;
   --border:#E8DDE3;--radius:12px;--radius-sm:8px;
 }
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:max(80px,env(safe-area-inset-bottom,0px))}
 
 /* HEADER */
 .header{background:var(--teal);padding:20px 18px 0;position:sticky;top:0;z-index:200}
@@ -237,6 +237,69 @@ textarea.reflect-prompt-q{min-height:56px;resize:vertical;line-height:1.4}
 .guide-table{width:100%;font-size:13px;border-collapse:collapse;margin-top:8px}
 .guide-table td{padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text-mid)}
 .guide-table td:first-child{font-weight:600;color:var(--text);width:36%}
+
+/* TABLET & iPAD */
+@media(min-width:768px){
+  .header{padding-top:max(24px,env(safe-area-inset-top));padding-right:max(24px,env(safe-area-inset-right));padding-bottom:0;padding-left:max(24px,env(safe-area-inset-left))}
+  .week-bar{top:156px}
+  .header-top,.tabs,.week-bar,.main{max-width:1100px;margin-left:auto;margin-right:auto}
+  .header h1{font-size:32px}
+  .header-score .sn{font-size:28px}
+  .header-score{padding:10px 22px}
+  .tab-btn{padding:16px 0;font-size:16px}
+  .week-bar{top:148px;padding:14px 20px;flex-wrap:wrap;justify-content:center;overflow-x:visible;gap:10px}
+  .wbtn{min-width:5.5rem;padding:10px 14px}
+  .wbtn-w{font-size:14px}
+  .wbtn-d{font-size:13px;max-width:9rem}
+  .main{padding:20px 28px 32px}
+  .sec-label{font-size:11px;margin:22px 0 10px}
+  .task-row{padding:18px 20px;margin-bottom:12px;border-radius:var(--radius)}
+  .task-name{font-size:16px}
+  .task-goal{font-size:13px}
+  .btn-edit,.btn-del{min-width:44px;min-height:44px;font-size:14px}
+  .task-drag-handle{width:32px;min-height:44px}
+  .day-grid{gap:8px}
+  .day-col{min-height:108px}
+  .day-label{font-size:13px}
+  .slider{--thumb-r:14px}
+  .slider-wrap{min-height:92px;padding:8px 4px 10px}
+  .slider-track{height:44px}
+  .slider-track::before,.slider-fill{height:12px}
+  .slider-val{font-size:13px}
+  .ach-val{font-size:14px;padding:8px 10px;min-width:48px}
+  .matrix{min-height:min(72vh,680px);gap:3px;border-radius:16px}
+  .quadrant{padding:18px;min-height:280px}
+  .q-title{font-size:14px}
+  .q-sub{font-size:12px}
+  .q-tasks{max-height:min(36vh,420px)}
+  .q-task-row{padding:12px 14px;font-size:14px}
+  .summary-grid{gap:12px;margin-bottom:20px}
+  .sum-card{padding:14px 16px}
+  .sum-card .sv{font-size:26px}
+  .sum-card .sl{font-size:12px}
+  .guide-wrap{max-width:720px}
+  .guide-intro,.guide-card{padding:20px 22px}
+  .gift-card{max-width:440px;padding:36px 32px}
+  .modal-overlay{align-items:center;padding:max(24px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom))}
+  .modal{border-radius:20px;max-width:560px;max-height:85vh;box-shadow:0 24px 80px rgba(0,0,0,0.2)}
+  .reflect-toggle{padding:12px 14px;font-size:14px}
+  .reflect-day-tab{padding:8px 14px;font-size:12px}
+  .reflect-answer{min-height:64px;font-size:14px;padding:11px 13px}
+  .add-task-btn,.undo-btn{padding:13px 16px;font-size:14px}
+}
+@media(min-width:1024px){
+  .header h1{font-size:34px}
+  .main{max-width:1100px}
+  .matrix{min-height:min(70vh,720px)}
+  .quadrant{min-height:300px}
+  .day-grid{gap:10px}
+  .day-col{min-height:112px}
+  .slider{--thumb-r:15px}
+  .slider-track{height:48px}
+  .slider-track::before,.slider-fill{height:13px}
+  .task-top{margin-bottom:12px}
+  .modal{max-width:600px;padding:24px}
+}
 
 @media(max-width:440px){
   .day-grid{gap:3px}
