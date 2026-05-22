@@ -4,9 +4,14 @@ Static single-page app — open `index.html` locally or use the live site below.
 
 ## Live site
 
-After GitHub Pages is enabled (Settings → Pages → Source: **GitHub Actions**):
-
 **https://hk204844-ui.github.io/TO_DO_LIST/**
+
+### If the site shows 404 (after making the repo private/public)
+
+1. Open **Settings → Pages** on the repo.
+2. Set **Build and deployment → Source** to **GitHub Actions**.
+3. Open the **Actions** tab → run **Deploy to GitHub Pages** (or push to `main` triggers it).
+4. Wait for the green checkmark, then reload the URL above.
 
 ## Local use
 
